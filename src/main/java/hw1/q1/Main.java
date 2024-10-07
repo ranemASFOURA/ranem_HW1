@@ -31,6 +31,9 @@ public class Main {
 
             System.out.println("Testing Domain Size: " + domainSize);
 
+            // Variable to track previous time for calculating improvements
+            double prevTime = Double.MAX_VALUE;
+
             // Iterate through each thread count
             for (int numThreads : threadCounts) {
                 long startTime = System.nanoTime();
@@ -42,14 +45,27 @@ public class Main {
                 long endTime = System.nanoTime();
                 double elapsedTimeInSeconds = (endTime - startTime) / 1_000_000_000.0;
 
+                // Calculate performance improvement (compared to previous run)
+                double improvement = prevTime == Double.MAX_VALUE ? 0 : ((prevTime - elapsedTimeInSeconds) / prevTime) * 100;
+
                 System.out.println("Threads: " + numThreads + ", Domain Size: " + domainSize
-                        + ", Time: " + elapsedTimeInSeconds + " seconds, Primes found: " + primes.size());
+                        + ", Time: " + elapsedTimeInSeconds + " seconds, Primes found: " + primes.size()
+                        + ", Improvement: " + String.format("%.2f", improvement) + "%");
 
                 // Check if this is the best time for the current domain size
                 if (elapsedTimeInSeconds < bestTimeForDomain) {
                     bestTimeForDomain = elapsedTimeInSeconds;
                     bestThreadCountForDomain = numThreads;
                 }
+
+                // Check for saturation point: when improvement is less than 5%
+                if (improvement < 5 && numThreads > 1) {
+                    System.out.println("Saturation point reached at " + numThreads + " threads for domain size: " + domainSize);
+                    break;  // Exit loop for this domain size, as increasing threads won't help
+                }
+
+                // Update previous time for the next iteration
+                prevTime = elapsedTimeInSeconds;
             }
 
             // Store the best performance for this domain size
