@@ -1,7 +1,9 @@
 package hw1.q1;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -9,42 +11,59 @@ import java.util.concurrent.Future;
 public class Main {
     public static void main(String[] args) throws Exception {
         int totalStart = 1;
-        int totalEnd = 1000000;  // You can adjust this to test on larger ranges
+        int totalEnd = 100000;  // Test with a large range
 
         // List of different thread counts to test
-        List<Integer> threadCounts = List.of(1, 2, 4, 8, 16, 32,64);  // Vary this as needed
+        List<Integer> threadCounts = List.of(1, 2, 4, 8, 16, 32);
 
-        // Variable to track the best performance
-        double bestTime = Double.MAX_VALUE;
-        int bestThreadCount = 1;
-        double performanceThreshold = 1.05;  // Threshold for performance improvement
+        // List of different domain sizes (i.e., sub-range lengths)
+        List<Integer> domainSizes = List.of(1000, 50000, 80000, totalEnd);
 
-        System.out.println("Testing performance for different thread counts...");
+        // Map to store the best performance (time and thread count) for each domain size
+        Map<Integer, PerformanceResult> bestPerformanceForDomains = new HashMap<>();
 
-        // Iterate through each thread count and measure the performance
-        for (int numThreads : threadCounts) {
-            long startTime = System.nanoTime();
-            List<Integer> primes = findPrimesWithThreads(totalStart, totalEnd, numThreads);
-            long endTime = System.nanoTime();
+        System.out.println("Testing performance for different domain sizes and thread counts...\n");
 
-            double elapsedTimeInSeconds = (endTime - startTime) / 1_000_000_000.0;
-            System.out.println("Threads: " + numThreads + ", Time: " + elapsedTimeInSeconds + " seconds, Primes found: " + primes.size());
+        // Iterate through each domain size
+        for (int domainSize : domainSizes) {
+            double bestTimeForDomain = Double.MAX_VALUE;  // Track the best time for this domain size
+            int bestThreadCountForDomain = 1;
 
-            // Check if the current configuration has the best time
-            if (elapsedTimeInSeconds < bestTime) {
-                bestTime = elapsedTimeInSeconds;
-                bestThreadCount = numThreads;
+            System.out.println("Testing Domain Size: " + domainSize);
+
+            // Iterate through each thread count
+            for (int numThreads : threadCounts) {
+                long startTime = System.nanoTime();
+
+                // Adjust totalEnd for each domain size
+                int adjustedEnd = Math.min(domainSize, totalEnd);
+                List<Integer> primes = findPrimesWithThreads(totalStart, adjustedEnd, numThreads);
+
+                long endTime = System.nanoTime();
+                double elapsedTimeInSeconds = (endTime - startTime) / 1_000_000_000.0;
+
+                System.out.println("Threads: " + numThreads + ", Domain Size: " + domainSize
+                        + ", Time: " + elapsedTimeInSeconds + " seconds, Primes found: " + primes.size());
+
+                // Check if this is the best time for the current domain size
+                if (elapsedTimeInSeconds < bestTimeForDomain) {
+                    bestTimeForDomain = elapsedTimeInSeconds;
+                    bestThreadCountForDomain = numThreads;
+                }
             }
 
-            // Stop testing more threads if the performance improvement becomes negligible
-            if (bestTime / elapsedTimeInSeconds > performanceThreshold) {
-                System.out.println("Performance improvement has plateaued at " + numThreads + " threads.");
-                break;
-            }
+            // Store the best performance for this domain size
+            bestPerformanceForDomains.put(domainSize, new PerformanceResult(bestThreadCountForDomain, bestTimeForDomain));
+            System.out.println();
         }
 
-        // Output the best thread count and its time
-        System.out.println("\nOptimal number of threads: " + bestThreadCount + ", Best time: " + bestTime + " seconds");
+        // Output the best performance for each domain size
+        System.out.println("Best performance for each domain size:");
+        for (int domainSize : bestPerformanceForDomains.keySet()) {
+            PerformanceResult result = bestPerformanceForDomains.get(domainSize);
+            System.out.println("Domain Size: " + domainSize + ", Best Thread Count: " + result.getThreadCount()
+                    + ", Best Time: " + result.getTime() + " seconds");
+        }
     }
 
     public static List<Integer> findPrimesWithThreads(int totalStart, int totalEnd, int numThreads) throws Exception {
@@ -70,7 +89,25 @@ public class Main {
         }
 
         executor.shutdown();  // Shut down the executor service
-
         return allPrimes;
+    }
+
+    // Class to store the performance result for each domain size
+    static class PerformanceResult {
+        private final int threadCount;
+        private final double time;
+
+        public PerformanceResult(int threadCount, double time) {
+            this.threadCount = threadCount;
+            this.time = time;
+        }
+
+        public int getThreadCount() {
+            return threadCount;
+        }
+
+        public double getTime() {
+            return time;
+        }
     }
 }
