@@ -26,12 +26,12 @@ public class PrimeCheckerImpl implements PrimeChecker, Callable<List<Integer>>{
     }
 
     @Override
-    public List<Integer> call() throws Exception {
+    public List<Integer> call()  {
         return findPrimesInRange(start, end);
     }
 
     // Helper method to check if a number is prime
-    private boolean isPrime(int num) {
+    public boolean isPrime(int num) {
         if (num <= 1) {
             return false;
         }
